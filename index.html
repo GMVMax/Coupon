@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>GMV Max Coupon — Interactive Simulator</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+  :root{
+    --bg:#0f172a; --panel:#1e293b; --panel2:#273449;
+    --ink:#e2e8f0; --mute:#94a3b8; --acc:#22d3ee; --good:#10b981;
+    --warn:#f59e0b; --bad:#ef4444; --profit:#a78bfa; --spend:#f97316;
+    --coupon:#f43f5e; --gmv:#34d399; --roi:#38bdf8;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:linear-gradient(135deg,#0b1120 0%,#1e293b 100%);
+    color:var(--ink); min-height:100vh; padding:22px;
+  }
+  h1{margin:0 0 6px; font-size:24px; letter-spacing:.3px}
+  .sub{color:var(--mute); font-size:13px; margin-bottom:18px}
+  .grid{
+    display:grid; grid-template-columns:380px 1fr; gap:18px;
+    max-width:1400px; margin:0 auto;
+  }
+  .col{display:flex; flex-direction:column; gap:18px; min-width:0}
+  @media (max-width:980px){.grid{grid-template-columns:1fr}}
+  .card{
+    background:var(--panel); border:1px solid #334155;
+    border-radius:14px; padding:18px;
+    box-shadow:0 6px 24px rgba(0,0,0,.25);
+  }
+  .card h3{margin:0 0 12px; font-size:14px; letter-spacing:.4px; color:var(--acc); text-transform:uppercase}
+  label{display:flex; justify-content:space-between; font-size:12px; color:var(--mute); margin:12px 0 4px}
+  label b{color:var(--ink); font-size:14px}
+  input[type=number]{
+    width:100%; background:var(--panel2); color:var(--ink); border:1px solid #475569;
+    border-radius:8px; padding:6px 8px; font-size:13px;
+  }
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+  .btns{display:flex; gap:8px; margin-top:14px; flex-wrap:wrap}
+  .btn{
+    flex:1; padding:8px 10px; border-radius:8px; border:1px solid #475569;
+    background:var(--panel2); color:var(--ink); cursor:pointer; font-size:12px;
+    transition:.15s; white-space:nowrap;
+  }
+  .btn:hover{border-color:var(--acc); color:var(--acc)}
+  .btn.primary{background:var(--acc); color:#083344; border-color:var(--acc); font-weight:700}
+
+  /* =========== SLIDER ZONE =========== */
+  .slider-zone{
+    position:relative;
+    padding: 92px 0 56px 0;    /* top: room for trophy+label+bubble; bottom: room for tick labels */
+    margin-top:4px;
+  }
+  .slider-rail{
+    position:relative; height:8px; border-radius:4px;
+    background:#0f172a; border:1px solid #334155; width:100%;
+  }
+  /* Recommended 3-10% band painted inside the rail */
+  .rec-band{
+    position:absolute; top:-1px; bottom:-1px;
+    background:linear-gradient(180deg, rgba(16,185,129,.35), rgba(16,185,129,.18));
+    border-left:1px dashed rgba(16,185,129,.7);
+    border-right:1px dashed rgba(16,185,129,.7);
+    border-radius:2px;
+    pointer-events:none;
+  }
+  .rec-band-lbl{
+    position:absolute; bottom:-44px; transform:translateX(-50%);
+    font-size:10px; color:var(--good); white-space:nowrap; font-weight:700;
+    pointer-events:none;
+  }
+  /* The real range input sits on top, transparent track so the band shows through */
+  input[type=range].clean{
+    position:absolute; top:-12px; left:0;
+    width:100%; height:32px;
+    -webkit-appearance:none; appearance:none;
+    background:transparent; margin:0; padding:0; z-index:3;
+    cursor:pointer;
+  }
+  input[type=range].clean::-webkit-slider-runnable-track{ height:32px; background:transparent; }
+  input[type=range].clean::-moz-range-track{ height:32px; background:transparent; }
+  input[type=range].clean::-webkit-slider-thumb{
+    -webkit-appearance:none; appearance:none;
+    width:20px; height:20px; border-radius:50%;
+    background:var(--acc); border:2px solid #083344;
+    box-shadow:0 0 0 4px rgba(34,211,238,.20);
+    cursor:pointer; margin-top:6px;
+  }
+  input[type=range].clean::-moz-range-thumb{
+    width:20px; height:20px; border-radius:50%;
+    background:var(--acc); border:2px solid #083344;
+    box-shadow:0 0 0 4px rgba(34,211,238,.20);
+    cursor:pointer;
+  }
+  /* Tick labels below rail */
+  .ticks{ position:relative; margin-top:8px; height:14px; }
+  .ticks span{
+    position:absolute; transform:translateX(-50%);
+    font-size:10px; color:var(--mute);
+  }
+  /* Trophy sits ABOVE the rail, absolute */
+  .trophy{
+    position:absolute; top:6px; transform:translateX(-50%);
+    font-size:22px; transition:left .25s ease, opacity .2s;
+    pointer-events:none; z-index:5;
+    filter: drop-shadow(0 0 6px rgba(245,158,11,.65));
+  }
+  .trophy .tip{
+    position:absolute; top:26px; left:50%; transform:translateX(-50%);
+    background:var(--warn); color:#1e293b; font-weight:800; font-size:10px;
+    padding:1px 6px; border-radius:6px; white-space:nowrap;
+  }
+  /* Current thumb reading bubble */
+  .rate-bubble{
+    position:absolute; top:84px; transform:translate(-50%, -100%);
+    background:var(--acc); color:#083344;
+    padding:3px 8px; font-weight:800; font-size:12px; border-radius:8px;
+    transition:left .2s ease; z-index:4; white-space:nowrap;
+  }
+  .rate-bubble::after{
+    content:""; position:absolute; bottom:-5px; left:50%; transform:translateX(-50%);
+    border:5px solid transparent; border-top-color:var(--acc);
+  }
+  /* Story box — right under the slider */
+  .story{
+    margin-top:16px; padding:12px; border-radius:10px;
+    background:var(--panel2); border-left:4px solid var(--acc);
+    font-size:13px; line-height:1.5;
+    min-height:64px;
+  }
+  .story b{color:var(--acc)}
+  .band-chip{
+    display:inline-block; padding:2px 8px; border-radius:6px;
+    font-size:11px; font-weight:700; margin-right:8px;
+    background:var(--acc); color:#083344;
+  }
+
+  /* =========== KPIs =========== */
+  .kpis{display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin-bottom:14px}
+  .kpi{
+    background:var(--panel2); border:1px solid #334155; border-radius:10px;
+    padding:10px 12px;
+  }
+  .kpi .l{font-size:11px; color:var(--mute); text-transform:uppercase; letter-spacing:.5px}
+  .kpi .v{font-size:18px; font-weight:700; margin-top:4px}
+  .kpi .d{font-size:11px; margin-top:3px}
+  .pos{color:var(--good)} .neg{color:var(--bad)}
+  .bars{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-top:10px}
+  .bar-wrap{display:flex; flex-direction:column; align-items:stretch; text-align:center}
+  .bar-name{font-size:12px; font-weight:700; color:var(--ink); margin-bottom:4px; letter-spacing:.2px}
+  .bar-col{
+    width:100%; height:180px; background:#0f172a; border-radius:10px;
+    position:relative; overflow:hidden; border:1px solid #334155;
+  }
+  .bar-fill{
+    position:absolute; left:0; right:0; bottom:0;
+    transition:height .25s ease, background .25s;
+  }
+  /* "LOSS" chip overlaid on the profit bar when negative */
+  .loss-chip{
+    position:absolute; top:8px; left:50%; transform:translateX(-50%);
+    font-size:10px; font-weight:800; letter-spacing:.6px;
+    background:rgba(239,68,68,.18); color:var(--bad);
+    border:1px solid rgba(239,68,68,.45); padding:2px 8px; border-radius:999px;
+    pointer-events:none; opacity:0; transition:opacity .2s;
+  }
+  .loss-chip.show{opacity:1}
+  .bar-lbl{margin-top:6px; font-size:12px; color:var(--mute); font-variant-numeric:tabular-nums}
+  .bar-lbl.neg{color:var(--bad); font-weight:700}
+  
+  /* Algorithmically determined card */
+  .algo-card{
+    border:1px dashed var(--warn);
+    background:linear-gradient(180deg, rgba(245,158,11,.05), rgba(245,158,11,.02));
+    margin-top:14px;
+  }
+  .algo-card h3{color:var(--warn) !important; text-transform:none; letter-spacing:0; font-size:13px; margin-bottom:8px}
+  .algo-pill{
+    font-size:9px; font-weight:800; letter-spacing:.8px; text-transform:uppercase;
+    color:var(--warn); background:rgba(245,158,11,.14);
+    border:1px solid rgba(245,158,11,.5); border-radius:999px; padding:2px 8px;
+  }
+  .algo-note{font-size:11.5px; color:var(--mute); line-height:1.5; margin-bottom:10px}
+  .unit-suffix{font-size:10px; color:var(--mute); font-weight:500; letter-spacing:.2px}
+
+  canvas{background:var(--panel2); border-radius:10px; display:block; width:100%}
+
+  /* =========== TOGGLE LEGEND =========== */
+  .legend{
+    display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;
+  }
+  .legend .toggle{
+    cursor:pointer; user-select:none;
+    display:inline-flex; align-items:center; gap:6px;
+    padding:5px 10px; border-radius:18px;
+    background:var(--panel2); border:1px solid #334155;
+    font-size:11px; color:var(--ink); transition:.15s;
+  }
+  .legend .toggle:hover{border-color:#64748b}
+  .legend .toggle.off{ opacity:.38; text-decoration:line-through; }
+  .legend .sw{
+    display:inline-block; width:22px; height:3px; border-radius:2px;
+  }
+  .legend .info{ padding:5px 10px; font-size:11px; color:var(--mute); }
+  .legend .info.band{ color:var(--good); }
+
+  table{width:100%; border-collapse:collapse; font-size:12px}
+  th,td{padding:6px 6px; text-align:right; border-bottom:1px solid #334155}
+  th{color:var(--mute); font-weight:600; text-transform:uppercase; font-size:10px; letter-spacing:.5px}
+  tr.active{background:rgba(34,211,238,.08)}
+  tr.active td:first-child{color:var(--acc); font-weight:700}
+  td:first-child,th:first-child{text-align:left}
+  .anim-ctrl{display:flex; gap:8px; align-items:center; margin-top:10px}
+
+  footer.footnote{max-width:1400px; margin:22px auto 0; color:#e2e8f0; font-size:14px; text-align:center; padding:14px 20px; background:var(--panel2); border:1px solid #334155; border-radius:10px; line-height:1.55; letter-spacing:.1px}
+  .disclaimer{max-width:1400px; margin:18px auto 0; padding:16px 20px; border-radius:12px;
+    background:linear-gradient(180deg, rgba(245,158,11,.10), rgba(245,158,11,.04));
+    border:1px dashed var(--warn); color:#e2e8f0; font-size:12px; line-height:1.55}
+  .disclaimer h4{margin:0 0 8px; font-size:13px; color:var(--warn); display:flex; align-items:center; gap:8px; letter-spacing:.3px}
+  .disclaimer h4 .pill{font-size:9px; font-weight:800; letter-spacing:.8px; text-transform:uppercase; color:var(--warn); background:rgba(245,158,11,.14); border:1px solid rgba(245,158,11,.5); border-radius:999px; padding:2px 8px}
+  .disclaimer p{margin:6px 0; color:#cbd5e1}
+  .disclaimer ul{margin:6px 0 0 18px; padding:0; color:#cbd5e1}
+  .disclaimer ul li{margin:3px 0}
+  .disclaimer b{color:#e2e8f0}
+  footer.footnote b{color:var(--acc); font-weight:800}
+</style>
+</head>
+<body>
+<h1>GMV Max Coupon — Interactive Simulator</h1>
+<div class="sub">Drag the slider — the green band on the rail is the <b>dynamic recommended range</b> (updates with your assumptions). The 🏆 sits at the profit-maximising coupon rate.</div>
+
+<div class="grid">
+  <!-- LEFT COLUMN -->
+  <div class="col">
+  <!-- CONTROLS -->
+  <div class="card">
+    <h3>Coupon Cost Rate</h3>
+
+    <!-- Slider + trophy + bubble + ticks + story -->
+    <div class="slider-zone">
+      <!-- Trophy sits ABOVE the rail -->
+      <span class="trophy" id="trophy" style="left:35%; opacity:0">
+        🏆<span class="tip" id="trophyTip">7.0%</span>
+      </span>
+      <!-- Current bubble -->
+      <div class="rate-bubble" id="rateBubble" style="left:0%">0.0%</div>
+
+      <!-- Rail + recommended band + real input -->
+      <div class="slider-rail">
+        <div class="rec-band" id="recBand" style="left:15%; right:50%;"></div>
+        <div class="rec-band-lbl" id="recBandLbl" style="left:32.5%">Recommended</div>
+        <input id="rate" class="clean" type="range" min="0" max="2000" value="0" step="5" />
+      </div>
+
+      <!-- Tick labels -->
+      <div class="ticks">
+        <span style="left:0%">0%</span>
+        <span style="left:25%">5%</span>
+        <span style="left:50%">10%</span>
+        <span style="left:75%">15%</span>
+        <span style="left:100%">20%</span>
+      </div>
+    </div>
+
+    <!-- STORY — right under slider so it changes as you drag -->
+    <div class="story" id="story">
+      <span class="band-chip" id="bandChip">Baseline</span>
+      <b id="storyHead">Baseline (0%).</b>
+      <span id="storyTale">Ad budget converts organically. Move the slider or press Play.</span>
+    </div>
+
+    <div class="anim-ctrl">
+      <button class="btn primary" id="playBtn">▶ Play sweep</button>
+      <button class="btn" id="resetBtn">Reset</button>
+      <button class="btn" id="peakBtn">Jump to 🏆</button>
+    </div>
+
+    <h3 style="margin-top:18px">Preset rates</h3>
+    <div class="btns">
+      <button class="btn" data-set="0">0%</button>
+      <button class="btn" data-set="2">2%</button>
+      <button class="btn" data-set="5">5%</button>
+      <button class="btn" data-set="8">8%</button>
+      <button class="btn" data-set="10">10%</button>
+    </div>
+
+    <h3 style="margin-top:18px">Business assumptions</h3>
+    <label>Ad Budget <span class="unit-suffix">USD</span></label>
+    <input id="budget" type="number" value="1000" step="100" />
+    <div class="row2">
+      <div>
+        <label>ROI target <span class="unit-suffix">×</span></label>
+        <input id="troi" type="number" value="5" step="0.1" min="1" />
+      </div>
+      <div>
+        <label>AOV <span class="unit-suffix">USD</span></label>
+        <input id="aov" type="number" value="20" step="1" min="1" />
+      </div>
+    </div>
+    <div>
+      <label>Gross Margin <span class="unit-suffix">%</span></label>
+      <input id="gm" type="number" value="65" step="1" min="1" max="100" />
+    </div>
+    <!-- hidden stubs so existing JS setters don't error -->
+    <span id="budLbl" style="display:none"></span>
+    <span id="troiLbl" style="display:none"></span>
+    <span id="aovLbl" style="display:none"></span>
+    <span id="gmLbl" style="display:none"></span>
+  </div>
+
+  <!-- ===== Algorithmically determined (values assumed) ===== -->
+  <div class="card algo-card">
+    <h3 style="display:flex; align-items:center; gap:8px">
+      <span style="color:var(--warn)">Algorithmically determined</span>
+      <span class="algo-pill">values assumed</span>
+    </h3>
+    <p class="algo-note">
+      Shopper behaviour &amp; system prediction — <b>illustrative only</b>.
+    </p>
+    <div class="row2">
+      <div>
+        <label title="Cap on extra GMV from price-sensitive shoppers.">Audience Upside Cap (U) <span class="unit-suffix">%</span></label>
+        <input id="liftA" type="number" value="30" step="1" min="0" max="60" />
+      </div>
+      <div>
+        <label title="How fast shoppers respond to small coupons (5–30).">Responsiveness (S) <span id="kHint" class="unit-suffix"></span></label>
+        <input id="liftK" type="number" value="14" step="1" min="5" max="30" />
+      </div>
+    </div>
+    <!-- hidden stubs so existing JS setters don't error -->
+    <span id="aLbl" style="display:none"></span>
+    <span id="kLbl" style="display:none"></span>
+  </div>
+
+  </div><!-- /LEFT COLUMN -->
+
+  <!-- RIGHT COLUMN -->
+  <div class="col">
+  <!-- DASHBOARD -->
+  <div class="card">
+    <h3>Key KPIs</h3>
+    <div class="kpis">
+      <div class="kpi" title="Extra GMV unlocked by the coupon, on top of what your ad budget alone delivers. Ad spend stays fixed; the coupon converts price-sensitive shoppers who would otherwise bounce.">
+        <div class="l">Coupon-Driven GMV Gain</div>
+        <div class="v" id="kCvr">+0.0%</div>
+        <div class="d" id="kCvrD">Effective ROI 5.0× → 5.0×</div>
+      </div>
+      <div class="kpi">
+        <div class="l">GMV</div>
+        <div class="v" id="kGmv">$150,000</div>
+        <div class="d" id="kGmvD">+0.0% vs base</div>
+      </div>
+      <div class="kpi">
+        <div class="l">Profit</div>
+        <div class="v" id="kProf">$47,500</div>
+        <div class="d" id="kProfD">+0.0% vs base</div>
+      </div>
+      <div class="kpi">
+        <div class="l">Profit Margin</div>
+        <div class="v" id="kMarg">31.7%</div>
+        <div class="d" id="kMargD">of GMV</div>
+      </div>
+      <div class="kpi">
+        <div class="l">Coupon ROI</div>
+        <div class="v" id="kRoi" style="color:var(--roi)">—</div>
+        <div class="d" id="kRoiD">Δ GMV ÷ Coupon</div>
+      </div>
+    </div>
+
+    <h3>Money breakdown at current rate</h3>
+    <div class="bars">
+      <div class="bar-wrap">
+        <div class="bar-name">GMV</div>
+        <div class="bar-col"><div class="bar-fill" id="bGmv" style="background:var(--gmv)"></div></div>
+        <div class="bar-lbl" id="lGmv">$150k</div>
+      </div>
+      <div class="bar-wrap">
+        <div class="bar-name">Ad Spend</div>
+        <div class="bar-col"><div class="bar-fill" id="bSpend" style="background:var(--spend)"></div></div>
+        <div class="bar-lbl" id="lSpend">$50k</div>
+      </div>
+      <div class="bar-wrap">
+        <div class="bar-name">Profit</div>
+        <div class="bar-col" id="profCol">
+          <div class="bar-fill" id="bProf" style="background:var(--profit)"></div>
+          <div class="loss-chip" id="lossChip">↓ LOSS</div>
+        </div>
+        <div class="bar-lbl" id="lProf">$48k</div>
+      </div>
+      <div class="bar-wrap">
+        <div class="bar-name">Coupon</div>
+        <div class="bar-col"><div class="bar-fill" id="bCoupon" style="background:var(--coupon)"></div></div>
+        <div class="bar-lbl" id="lCoupon">$0</div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:18px">Curves — click a label to toggle</h3>
+    <div class="legend" id="legend"></div>
+    <canvas id="chart" height="280" style="margin-top:10px"></canvas>
+
+    <h3 style="margin-top:18px">Scenario table</h3>
+    <table id="tbl">
+      <thead><tr>
+        <th>Rate</th><th>GMV Gain %</th><th>Orders</th><th>GMV</th>
+        <th>Spend</th><th>Coupon</th><th>Δ GMV from coupon</th><th>Coupon ROI</th>
+        <th>Profit</th><th>Margin</th><th>ΔProfit</th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+  </div><!-- /RIGHT COLUMN -->
+
+<div class="card" style="grid-column:1/-1">
+  <h3>How it works</h3>
+  <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:14px; font-size:13px; line-height:1.55">
+    <div style="padding:12px; background:var(--panel2); border-radius:10px; border-left:4px solid var(--acc)">
+      <b style="color:var(--acc)">① Coupons unlock extra shoppers</b><br/>
+      Coupons convert price-sensitive shoppers who'd otherwise bounce. Bigger <b>r</b> → bigger lift, with <b>diminishing returns</b>. Ceiling = <b>U</b> (Audience Upside Cap).
+    </div>
+    <div style="padding:12px; background:var(--panel2); border-radius:10px; border-left:4px solid var(--warn)">
+      <b style="color:var(--warn)">② How fast the curve climbs</b><br/>
+      <b>S</b> = curve speed. High S → tiny coupons move the needle. Low S → need bigger coupons.
+    </div>
+    <div style="padding:12px; background:var(--panel2); border-radius:10px; border-left:4px solid var(--good)">
+      <b style="color:var(--good)">③ Profit has a sweet spot</b><br/>
+      GMV saturates; coupon cost grows linearly. The 🏆 marks the rate where profit peaks.
+    </div>
+  </div>
+  <div style="margin-top:12px; padding:14px; background:linear-gradient(135deg, rgba(34,211,238,.09), rgba(245,158,11,.06)); border-radius:10px; border:1px solid #334155; font-size:13px; color:#e2e8f0; line-height:1.6">
+    <div style="font-size:14px; color:var(--acc); font-weight:800; margin-bottom:6px">Where is the extra GMV coming from?</div>
+    Ad budget and ROI target don't change — <b>who converts</b> does. Without a coupon, only non-price-sensitive shoppers convert. With one, the same ad $ also captures the price-sensitive segment, so effective ROI overshoots the floor (5.0× → up to 5.0×(1+U)). <b>U</b> = size of that price-sensitive segment.
+  </div>
+  <div style="margin-top:10px; padding:12px; background:#0f172a; border-radius:8px; font-size:12px; color:#cbd5e1">
+    <b>Equation:</b> GMV(r) = GMV<sub>0</sub> × <b>[ 1 + U × (1 − e<sup>−S·r</sup>) ]</b> · Coupon cost = r × GMV · Profit = GMV × GM − Ad Spend − Coupon cost.
+  </div>
+</div>
+</div>
+<aside class="disclaimer" role="note" aria-label="Disclaimer">
+  <h4>⚠️ Disclaimer — Illustrative model only <span class="pill">not a forecast</span></h4>
+  <p>This explainer is a <b>directional simulation</b> designed to show how the Commission Saving offer on GMV Max could affect your unit economics. All figures (GMV, profit, margin) are <b>modelled assumptions</b> — they are not forecasts, guarantees, or contractual commitments from TikTok Shop or ByteDance.</p>
+  <ul>
+    <li>Actual results depend on creative supply, auction competition, inventory &amp; stock, pricing, seasonality, audience reach and platform algorithm behaviour.</li>
+    <li>The platform's <b>ROI target is a goal, not a guarantee</b> — realised ROI may differ.</li>
+    <li>Commission terms, eligibility, and availability are subject to TikTok Shop's official offer and <b>may change without notice</b>.</li>
+  </ul>
+</aside>
+<footer class="footnote">
+  <b>Coupon ROI</b> = Incremental GMV ÷ Coupon Cost · ROI-protected (ad spend & ROI target fixed) · figures illustrative.
+</footer>
+
+<script>
+/* ============ MODEL ============ */
+const $ = id => document.getElementById(id);
+
+function params(){
+  return {
+    budget: +$("budget").value,
+    troi:   +$("troi").value,
+    aov:    +$("aov").value,
+    gm:     +$("gm").value/100,
+    A:      +$("liftA").value/100,
+    k:      +$("liftK").value,
+  };
+}
+function simulate(rate, p){
+  const lift  = 1 + p.A*(1 - Math.exp(-p.k*rate));
+  // GMV Uplift % (same multiplier as lift-1)
+  const upliftPct = (lift - 1);
+  const cvr   = upliftPct;  // re-used as GMV Uplift % in the UI
+  const gmv0  = p.budget * p.troi;
+  const orders0 = gmv0 / p.aov;
+  const gmv   = gmv0 * lift;
+  const orders= orders0 * lift;
+  const spend = p.budget;
+  const coupon= rate * gmv;
+  const profit= gmv*p.gm - spend - coupon;
+  const pm    = profit / gmv;
+  const baseProfit = gmv0*p.gm - spend;
+  const incGmv = gmv - gmv0;
+  const couponRoi = coupon > 0 ? incGmv / coupon : null;
+  return {rate, lift, cvr, gmv, orders, spend, coupon, profit, pm, incGmv, couponRoi,
+          dGmv: gmv/gmv0 - 1, dProf: profit/baseProfit - 1,
+          baseGmv:gmv0, baseProfit};
+}
+function findPeakRate(p){
+  let best = {r:0, profit:-Infinity};
+  for(let i=0; i<=2000; i++){
+    const r = i/10000;
+    const s = simulate(r,p);
+    if(s.profit > best.profit){ best = {r, profit:s.profit}; }
+  }
+  return best.r;
+}
+
+/* Dynamic recommended range:
+   A rate r is "recommended" if:
+     (a) Profit(r) >= Baseline profit (profit-accretive vs no coupon)
+     (b) Coupon ROI(r) >= 1/GM (each $1 of coupon covers its own margin cost)
+   The band is the contiguous interval [lo, hi] with r* (profit peak) inside it.
+   Returns null if no such range exists.
+*/
+function computeRecommendedRange(p){
+  const breakEven = p.gm > 0 ? 1/p.gm : Infinity;
+  const base = simulate(0, p);
+  const okAt = r => {
+    const s = simulate(r, p);
+    if(s.profit < base.profit) return false;
+    if(s.couponRoi === null || !isFinite(s.couponRoi)) return false;
+    return s.couponRoi >= breakEven;
+  };
+  // scan fine grid 0..0.2 step 0.001
+  let lo = null, hi = null;
+  const step = 0.001;
+  for(let r=step; r<=0.200001; r+=step){
+    if(okAt(r)){
+      if(lo===null) lo = r;
+      hi = r;
+    } else if(lo!==null){
+      // first gap after starting — keep the contiguous interval anchored at lo
+      break;
+    }
+  }
+  if(lo===null) return null;
+  return {lo, hi};
+}
+
+/* ============ UI HELPERS ============ */
+const fmt$ = n => (n<0?"-$":"$") + Math.abs(Math.round(n)).toLocaleString();
+const fmtK = n => (n<0?"-$":"$") + Math.abs(Math.round(n/1000)).toLocaleString() + "k";
+function getCSS(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+function bandFor(r, peak, recRange){
+  if(r<0.005) return {chip:"Baseline", head:"Baseline (0%).",
+                      tale:"Ad budget converts organically. No GMV Max Coupon lift yet."};
+  if(Math.abs(r-peak) < 0.005) return {chip:"Profit peak 🏆", head:`Profit peak at ${(peak*100).toFixed(1)}%.`,
+                      tale:"Absolute profit maximum for your assumptions — best trade-off between scale and margin."};
+  if(recRange){
+    if(r < recRange.lo) return {chip:"Below recommended", head:`Below recommended (&lt;${(recRange.lo*100).toFixed(1)}%).`,
+                      tale:"Coupon spend is very small — ROI is high, but absolute profit lift is limited."};
+    if(r > recRange.hi) {
+      if(r < recRange.hi + 0.05) return {chip:"Over-couponing", head:`Over-couponing (&gt;${(recRange.hi*100).toFixed(1)}%).`,
+                      tale:"Past the dynamic recommended band: Coupon ROI drops below break-even OR profit falls below baseline."};
+      return {chip:"Danger", head:"Danger zone.",
+                      tale:"Vanity GMV: top-line keeps growing but absolute profit collapses."};
+    }
+    return {chip:"Recommended", head:`Recommended ${(recRange.lo*100).toFixed(1)}–${(recRange.hi*100).toFixed(1)}%.`,
+                      tale:"Inside the profit-accretive, ROI-healthy band computed for your assumptions."};
+  }
+  return {chip:"Not recommended", head:"Not recommended.",
+                      tale:"For your current assumptions there is no coupon rate that both lifts profit and clears ROI break-even."};
+}
+function bandColor(chip){
+  return chip==="Baseline" ? "#64748b"
+       : chip==="Below recommended" ? "#38bdf8"
+       : chip==="Profit peak 🏆" ? "#f59e0b"
+       : chip==="Recommended" ? "#10b981"
+       : chip==="Over-couponing" ? "#f97316"
+       : chip==="Not recommended" ? "#94a3b8"
+       : "#ef4444";
+}
+
+/* ============ TOGGLEABLE SERIES ============ */
+const SERIES = [
+  { key:"gmv",    label:"GMV (k$)",         color:"--gmv",     axis:"money", on:false },
+  { key:"profit", label:"Profit (k$)",      color:"--profit",  axis:"money", on:true },
+  { key:"coupon", label:"Coupon (k$)",      color:"--coupon",  axis:"money", on:true },
+  { key:"cvr",    label:"GMV Gain %",        color:"--acc",     axis:"pct",   on:false },
+  { key:"pm",     label:"Profit %",         color:"--warn",    axis:"pct",   on:false },
+  { key:"roi",    label:"Coupon ROI (×)",   color:"--roi",     axis:"roi",   on:false },
+];
+
+function buildLegend(){
+  const L = $("legend");
+  L.innerHTML = "";
+  SERIES.forEach(s=>{
+    const el = document.createElement("span");
+    el.className = "toggle" + (s.on ? "" : " off");
+    el.dataset.key = s.key;
+    el.innerHTML = `<span class="sw" style="background:var(${s.color})"></span>${s.label}`;
+    el.addEventListener("click", ()=>{
+      s.on = !s.on;
+      el.classList.toggle("off", !s.on);
+      render();
+    });
+    L.appendChild(el);
+  });
+  const band = document.createElement("span");
+  band.className = "info band"; band.id = "legendRecInfo"; band.textContent = "■ Recommended range (dynamic)";
+  L.appendChild(band);
+  const peak = document.createElement("span");
+  peak.className = "info"; peak.style.color = "var(--warn)";
+  peak.textContent = "🏆 Profit-maximising rate";
+  L.appendChild(peak);
+}
+function isOn(key){ return SERIES.find(s=>s.key===key).on; }
+
+/* ============ RENDER ============ */
+const ratePoints = Array.from({length:201},(_,i)=>i*0.001);
+
+function render(){
+  const p = params();
+  const r = +$("rate").value / 10000;
+  const s = simulate(r,p);
+  const peak = findPeakRate(p);
+
+  // Legend info text for dynamic band is updated after recRange is computed
+
+  // Trophy position above rail
+  const peakPct = (peak/0.20)*100;
+  $("trophy").style.left = peakPct+"%";
+  $("trophy").style.opacity = peak>0 ? 1 : 0.3;
+  $("trophyTip").textContent = (peak*100).toFixed(1)+"%";
+
+  // Rate bubble
+  $("rateBubble").style.left = (r/0.20*100) + "%";
+  $("rateBubble").textContent = (r*100).toFixed(1)+"%" + (Math.abs(r-peak)<0.003 ? " 🏆" : "");
+
+  // Recommended band = rates where Profit >= baseline AND Coupon ROI >= break-even
+  const recRange = computeRecommendedRange(p);
+  const recEl = $("recBand"), recLbl = $("recBandLbl");
+  if(recRange){
+    const L = recRange.lo/0.20*100, R = 100 - recRange.hi/0.20*100;
+    recEl.style.left  = L+"%";
+    recEl.style.right = R+"%";
+    recEl.style.opacity = 1;
+    const mid = (recRange.lo + recRange.hi)/2 / 0.20 * 100;
+    recLbl.style.left = mid+"%";
+    recLbl.textContent = `Recommended ${(recRange.lo*100).toFixed(1)}–${(recRange.hi*100).toFixed(1)}%`;
+    recLbl.style.opacity = 1;
+    const li = document.getElementById("legendRecInfo");
+    if(li) li.textContent = `■ Recommended ${(recRange.lo*100).toFixed(1)}–${(recRange.hi*100).toFixed(1)}% (dynamic)`;
+  } else {
+    recEl.style.opacity = 0;
+    recLbl.textContent = "No profitable coupon range";
+    const li = document.getElementById("legendRecInfo");
+    if(li) li.textContent = "■ No profitable coupon range";
+    recLbl.style.left = "50%";
+    recLbl.style.color = "var(--bad)";
+    recLbl.style.opacity = 1;
+  }
+
+  // Story
+  const band = bandFor(r, peak, recRange);
+  const chip = $("bandChip");
+  chip.textContent = band.chip;
+  chip.style.background = bandColor(band.chip);
+  chip.style.color = "#0f172a";
+  $("storyHead").innerHTML = band.head;
+  const be = 1/p.gm;
+  const roiLine = (s.couponRoi!==null && isFinite(s.couponRoi))
+     ? ` Coupon ROI = <b>${s.couponRoi.toFixed(2)}×</b> (break-even ≈ ${be.toFixed(2)}×).`
+     : "";
+  $("storyTale").innerHTML = band.tale + roiLine;
+
+  // Input echoes
+  $("budLbl").textContent = fmt$(p.budget);
+  $("troiLbl").textContent = p.troi.toFixed(1)+"×";
+  $("aovLbl").textContent = fmt$(p.aov);
+  $("gmLbl").textContent = (p.gm*100).toFixed(0)+"%";
+  $("aLbl").textContent = "+"+(p.A*100).toFixed(0)+"%";
+  $("kLbl").textContent = p.k.toFixed(0);
+  // Half-saturation rate: r where (1 - e^{-S r}) = 0.5  =>  r = ln(2)/S
+  $("kHint").textContent = "½ @ " + (Math.log(2)/p.k*100).toFixed(1) + "%";
+
+  // KPIs
+  $("kCvr").textContent = ((s.lift-1)>=0?"+":"")+((s.lift-1)*100).toFixed(1)+"%";
+  $("kCvrD").textContent = "Effective ROI " + p.troi.toFixed(1) + "× \u2192 " + (p.troi*s.lift).toFixed(1) + "×";
+  $("kCvrD").className = "d pos";
+
+  $("kGmv").textContent = fmt$(s.gmv);
+  $("kGmvD").className = "d "+(s.dGmv>=0?"pos":"neg");
+  $("kGmvD").textContent = (s.dGmv>=0?"+":"")+(s.dGmv*100).toFixed(1)+"% vs base";
+
+  $("kProf").textContent = fmt$(s.profit);
+  $("kProfD").className = "d "+(s.dProf>=0?"pos":"neg");
+  $("kProfD").textContent = (s.dProf>=0?"+":"")+(s.dProf*100).toFixed(1)+"% vs base";
+
+  $("kMarg").textContent = (s.pm*100).toFixed(1)+"%";
+
+  if(s.couponRoi === null){
+    $("kRoi").textContent = "—";
+    $("kRoiD").textContent = "No coupon spend yet";
+    $("kRoiD").className = "d";
+  } else {
+    $("kRoi").textContent = s.couponRoi.toFixed(2)+"×";
+    const healthy = s.couponRoi >= be;
+    $("kRoiD").textContent = (healthy?"Above ":"Below ") + `break-even ${be.toFixed(2)}×`;
+    $("kRoiD").className = "d " + (healthy?"pos":"neg");
+  }
+
+  // Bars: shared positive scale across GMV / Spend / Coupon / |Profit|
+  const profMag = Math.max(Math.abs(s.baseProfit), Math.abs(s.profit));
+  const maxScale = Math.max(s.baseGmv * (1 + p.A), s.gmv, s.spend, s.coupon, profMag, 1);
+  const Hpos = v => Math.max(2, Math.min(100, v/maxScale*100)) + "%";
+  $("bGmv").style.height   = Hpos(s.gmv);
+  $("bSpend").style.height = Hpos(s.spend);
+  $("bCoupon").style.height= Hpos(s.coupon);
+  // Profit: bar always grows up. Magnitude = |profit|. Color flips red on loss; LOSS chip appears.
+  $("bProf").style.height     = Hpos(Math.abs(s.profit));
+  $("bProf").style.background = s.profit < 0 ? "var(--bad)" : "var(--profit)";
+  document.getElementById("lossChip").classList.toggle("show", s.profit < 0);
+  $("lGmv").textContent    = fmtK(s.gmv);
+  $("lSpend").textContent  = fmtK(s.spend);
+  $("lCoupon").textContent = fmt$(s.coupon);
+  const lProf = $("lProf");
+  lProf.textContent = fmtK(s.profit);
+  lProf.classList.toggle("neg", s.profit < 0);
+
+  drawChart(p, r, peak, recRange);
+  drawTable(p, r);
+}
+
+/* ============ CHART ============ */
+function drawChart(p, rNow, peakRate, recRange){
+  const c = $("chart");
+  const dpr = window.devicePixelRatio || 1;
+  const W = c.clientWidth, H = 280;
+  c.width = W*dpr; c.height = H*dpr;
+  const ctx = c.getContext("2d"); ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,W,H);
+
+  const pad = {l:54,r:58,t:16,b:28};
+  const plotW = W-pad.l-pad.r, plotH = H-pad.t-pad.b;
+  const data = ratePoints.map(r=>simulate(r,p));
+
+  // Axes ranges based on visible series only
+  const moneyVals = [];
+  if(isOn("gmv"))    data.forEach(d=>moneyVals.push(d.gmv));
+  if(isOn("profit")) data.forEach(d=>moneyVals.push(d.profit));
+  if(isOn("coupon"))data.forEach(d=>moneyVals.push(d.coupon));
+  const maxMoney = moneyVals.length ? Math.max(...moneyVals) : 1;
+  const minMoney = moneyVals.length ? Math.min(0, ...moneyVals) : 0;
+  const spanM = (maxMoney-minMoney) || 1;
+
+  const pctVals = [];
+  if(isOn("cvr")) data.forEach(d=>pctVals.push(d.cvr));
+  if(isOn("pm"))  data.forEach(d=>pctVals.push(d.pm));
+  const maxPct = pctVals.length ? Math.max(...pctVals) : 0.05;
+
+  const validRoi = isOn("roi") ? data.map(d=>d.couponRoi).filter(v=>v!==null && isFinite(v)) : [];
+  const maxRoi = validRoi.length ? Math.min(10, Math.max(3, ...validRoi)) : 3;
+
+  const xOf = r => pad.l + (r/0.2)*plotW;
+  const yOfMoney = v => pad.t + (1 - (v-minMoney)/spanM)*plotH;
+  const yOfPct   = v => pad.t + (1 - v/maxPct)*plotH;
+  const yOfRoi   = v => pad.t + (1 - Math.min(v,maxRoi)/maxRoi)*plotH;
+
+  // recommended band (dynamic)
+  if(recRange){
+    ctx.fillStyle = "rgba(16,185,129,.12)";
+    ctx.fillRect(xOf(recRange.lo), pad.t, xOf(recRange.hi)-xOf(recRange.lo), plotH);
+  }
+
+  // gridlines & axis labels
+  ctx.strokeStyle = "#334155"; ctx.lineWidth=1;
+  ctx.font = "11px -apple-system,sans-serif"; ctx.fillStyle = "#64748b";
+  for(let pct=0; pct<=20; pct+=5){
+    const x = xOf(pct/100);
+    ctx.beginPath(); ctx.moveTo(x,pad.t); ctx.lineTo(x,H-pad.b); ctx.stroke();
+    ctx.textAlign="center"; ctx.fillText(pct+"%", x, H-pad.b+14);
+  }
+  ctx.textAlign="left";  ctx.fillText("$k", 6, pad.t+8);
+  ctx.textAlign="right"; ctx.fillText("%  /  ×", W-6, pad.t+8);
+
+  // ROI break-even guide (only if ROI visible)
+  if(isOn("roi")){
+    const be = 1/p.gm;
+    if(be <= maxRoi){
+      ctx.strokeStyle = "rgba(56,189,248,.4)"; ctx.setLineDash([2,4]); ctx.lineWidth=1;
+      const yB = yOfRoi(be);
+      ctx.beginPath(); ctx.moveTo(pad.l,yB); ctx.lineTo(W-pad.r,yB); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = getCSS("--roi");
+      ctx.textAlign = "left";
+      ctx.fillText(`ROI break-even ${be.toFixed(2)}×`, pad.l+6, yB-3);
+    }
+  }
+
+  if(minMoney<0){
+    ctx.strokeStyle="#475569"; ctx.setLineDash([3,3]);
+    const y0 = yOfMoney(0);
+    ctx.beginPath(); ctx.moveTo(pad.l,y0); ctx.lineTo(W-pad.r,y0); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  function line(points, color, lw=2){
+    ctx.strokeStyle=color; ctx.lineWidth=lw; ctx.beginPath();
+    let started = false;
+    points.forEach(pt=>{
+      if(pt === null){ started = false; return; }
+      if(!started){ ctx.moveTo(pt[0],pt[1]); started = true; }
+      else ctx.lineTo(pt[0],pt[1]);
+    });
+    ctx.stroke();
+  }
+
+  if(isOn("gmv"))    line(data.map(d=>[xOf(d.rate),yOfMoney(d.gmv)]),    getCSS("--gmv"),    2.2);
+  if(isOn("profit")) line(data.map(d=>[xOf(d.rate),yOfMoney(d.profit)]), getCSS("--profit"), 2.4);
+  if(isOn("coupon")) line(data.map(d=>[xOf(d.rate),yOfMoney(d.coupon)]), getCSS("--coupon"), 2);
+  if(isOn("cvr"))    line(data.map(d=>[xOf(d.rate),yOfPct(d.cvr)]),      getCSS("--acc"),    2);
+  if(isOn("pm"))     line(data.map(d=>[xOf(d.rate),yOfPct(d.pm)]),       getCSS("--warn"),   2);
+  if(isOn("roi"))    line(data.map(d=>d.couponRoi!==null && isFinite(d.couponRoi) ? [xOf(d.rate),yOfRoi(d.couponRoi)] : null),
+                          getCSS("--roi"), 2.4);
+
+  // Peak marker (only meaningful if profit is shown)
+  if(isOn("profit")){
+    const peakS = simulate(peakRate, p);
+    const xP = xOf(peakRate), yP = yOfMoney(peakS.profit);
+    ctx.strokeStyle = "rgba(245,158,11,.8)"; ctx.setLineDash([4,3]); ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(xP, pad.t); ctx.lineTo(xP, H-pad.b); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = getCSS("--warn");
+    ctx.beginPath(); ctx.arc(xP, yP, 6, 0, Math.PI*2); ctx.fill();
+    ctx.font = "16px -apple-system,sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("🏆", xP, yP - 10);
+    ctx.font = "11px -apple-system,sans-serif";
+    ctx.fillStyle = getCSS("--warn");
+    ctx.fillText(`Peak ${(peakRate*100).toFixed(1)}%`, xP, pad.t - 4);
+  }
+
+  // current marker
+  const xN = xOf(rNow);
+  ctx.strokeStyle="#ef4444"; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(xN,pad.t); ctx.lineTo(xN,H-pad.b); ctx.stroke();
+
+  const sNow = simulate(rNow,p);
+  const dots = [];
+  if(isOn("gmv"))    dots.push([yOfMoney(sNow.gmv),    getCSS("--gmv")]);
+  if(isOn("profit")) dots.push([yOfMoney(sNow.profit), getCSS("--profit")]);
+  if(isOn("coupon")) dots.push([yOfMoney(sNow.coupon), getCSS("--coupon")]);
+  if(isOn("cvr"))    dots.push([yOfPct(sNow.cvr),      getCSS("--acc")]);
+  if(isOn("pm"))     dots.push([yOfPct(sNow.pm),       getCSS("--warn")]);
+  if(isOn("roi") && sNow.couponRoi!==null && isFinite(sNow.couponRoi))
+                      dots.push([yOfRoi(sNow.couponRoi), getCSS("--roi")]);
+  dots.forEach(([y,col])=>{
+    ctx.fillStyle=col; ctx.beginPath(); ctx.arc(xN,y,4.5,0,Math.PI*2); ctx.fill();
+  });
+}
+
+/* ============ TABLE ============ */
+const TABLE_RATES = [0,0.01,0.02,0.03,0.05,0.07,0.10,0.15,0.20];
+function roiVerdict(roi, gm){
+  if(roi === null || !isFinite(roi)) return {txt:"—", cls:""};
+  const breakeven = gm>0 ? 1/gm : 1;
+  if(roi >= breakeven) return {txt:`${roi.toFixed(2)}×`, cls:"pos"};
+  return {txt:`${roi.toFixed(2)}×`, cls:"neg"};
+}
+function drawTable(p, rNow){
+  const tb = $("tbody"); tb.innerHTML = "";
+  TABLE_RATES.forEach(r=>{
+    const s = simulate(r,p);
+    const tr = document.createElement("tr");
+    if(Math.abs(r*10000 - Math.round(rNow*10000))<50) tr.className="active";
+    const roi = roiVerdict(s.couponRoi, p.gm);
+    tr.innerHTML = `
+      <td>${(r*100).toFixed(0)}%</td>
+      <td>${(s.cvr>=0?"+":"")}${(s.cvr*100).toFixed(1)}%</td>
+      <td>${Math.round(s.orders).toLocaleString()}</td>
+      <td>${fmt$(s.gmv)}</td>
+      <td>${fmt$(s.spend)}</td>
+      <td>${fmt$(s.coupon)}</td>
+      <td>${fmt$(s.incGmv)}</td>
+      <td class="${roi.cls}" style="font-weight:700">${roi.txt}</td>
+      <td>${fmt$(s.profit)}</td>
+      <td>${(s.pm*100).toFixed(1)}%</td>
+      <td style="color:${s.dProf>=0?'var(--good)':'var(--bad)'}">${(s.dProf>=0?'+':'')}${(s.dProf*100).toFixed(1)}%</td>`;
+    tb.appendChild(tr);
+  });
+}
+
+/* ============ ANIMATION ============ */
+let playing=false, dir=1;
+function playStep(){
+  if(!playing) return;
+  const s = $("rate"); let v = +s.value + dir*8;
+  if(v>=2000){ v=2000; dir=-1; }
+  if(v<=0){ v=0; dir=1; }
+  s.value = v; render();
+  requestAnimationFrame(()=>setTimeout(playStep,16));
+}
+$("playBtn").addEventListener("click", ()=>{
+  playing = !playing;
+  $("playBtn").textContent = playing ? "⏸ Pause" : "▶ Play sweep";
+  $("playBtn").classList.toggle("primary", !playing);
+  if(playing) playStep();
+});
+$("resetBtn").addEventListener("click", ()=>{
+  playing=false; $("playBtn").textContent="▶ Play sweep"; $("playBtn").classList.add("primary");
+  $("rate").value=0; render();
+});
+$("peakBtn").addEventListener("click", ()=>{
+  const peak = findPeakRate(params());
+  $("rate").value = Math.round(peak*10000);
+  render();
+});
+
+/* ============ EVENTS ============ */
+["rate","budget","troi","aov","gm","liftA","liftK"].forEach(id=>{
+  $(id).addEventListener("input", render);
+});
+document.querySelectorAll("[data-set]").forEach(b=>{
+  b.addEventListener("click", e=>{
+    $("rate").value = +e.target.dataset.set * 100;
+    render();
+  });
+});
+window.addEventListener("resize", render);
+
+/* boot */
+buildLegend();
+render();
+</script>
+</body>
+</html>
