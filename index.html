@@ -15,22 +15,22 @@
   body{
     margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
     background:linear-gradient(135deg,#0b1120 0%,#1e293b 100%);
-    color:var(--ink); min-height:100vh; padding:22px;
+    color:var(--ink); min-height:100vh; padding:14px;
   }
-  h1{margin:0 0 6px; font-size:24px; letter-spacing:.3px}
-  .sub{color:var(--mute); font-size:13px; margin-bottom:18px}
+  h1{margin:0 0 4px; font-size:21px; letter-spacing:.3px}
+  .sub{color:var(--mute); font-size:13px; margin-bottom:10px}
   .grid{
-    display:grid; grid-template-columns:380px 1fr; gap:18px;
+    display:grid; grid-template-columns:380px 1fr; gap:12px;
     max-width:1400px; margin:0 auto;
   }
-  .col{display:flex; flex-direction:column; gap:18px; min-width:0}
+  .col{display:flex; flex-direction:column; gap:12px; min-width:0}
   @media (max-width:980px){.grid{grid-template-columns:1fr}}
   .card{
     background:var(--panel); border:1px solid #334155;
-    border-radius:14px; padding:18px;
+    border-radius:14px; padding:14px;
     box-shadow:0 6px 24px rgba(0,0,0,.25);
   }
-  .card h3{margin:0 0 12px; font-size:14px; letter-spacing:.4px; color:var(--acc); text-transform:uppercase}
+  .card h3{margin:0 0 8px; font-size:14px; letter-spacing:.4px; color:var(--acc); text-transform:uppercase}
   label{display:flex; justify-content:space-between; font-size:12px; color:var(--mute); margin:12px 0 4px}
   label b{color:var(--ink); font-size:14px}
   input[type=number]{
@@ -50,7 +50,7 @@
   /* =========== SLIDER ZONE =========== */
   .slider-zone{
     position:relative;
-    padding: 92px 0 56px 0;    /* top: room for trophy+label+bubble; bottom: room for tick labels */
+    padding: 80px 0 44px 0;    /* top: room for trophy+label+bubble; bottom: room for tick labels */
     margin-top:4px;
   }
   .slider-rail{
@@ -174,7 +174,7 @@
   .algo-card{
     border:1px dashed var(--warn);
     background:linear-gradient(180deg, rgba(245,158,11,.05), rgba(245,158,11,.02));
-    margin-top:14px;
+    margin-top:8px; padding:12px;
   }
   .algo-card h3{color:var(--warn) !important; text-transform:none; letter-spacing:0; font-size:13px; margin-bottom:8px}
   .algo-pill{
@@ -182,8 +182,10 @@
     color:var(--warn); background:rgba(245,158,11,.14);
     border:1px solid rgba(245,158,11,.5); border-radius:999px; padding:2px 8px;
   }
-  .algo-note{font-size:11.5px; color:var(--mute); line-height:1.5; margin-bottom:10px}
+  .algo-note{font-size:11.5px; color:var(--mute); line-height:1.45; margin-bottom:8px}
   .unit-suffix{font-size:10px; color:var(--mute); font-weight:500; letter-spacing:.2px}
+  /* Keep U & S labels the same height so the two input boxes align */
+  .algo-card .row2 label{min-height:32px; align-items:flex-start; margin:6px 0 4px}
 
   canvas{background:var(--panel2); border-radius:10px; display:block; width:100%}
 
@@ -267,7 +269,7 @@
       <!-- Rail + recommended band + real input -->
       <div class="slider-rail">
         <div class="rec-band" id="recBand" style="left:15%; right:50%;"></div>
-        <div class="rec-band-lbl" id="recBandLbl" style="left:32.5%">Recommended</div>
+        <div class="rec-band-lbl" id="recBandLbl" style="left:32.5%; display:none">Recommended</div>
         <input id="rate" class="clean" type="range" min="0" max="2000" value="0" step="5" />
       </div>
 
@@ -294,7 +296,7 @@
       <button class="btn" id="peakBtn">Jump to 🏆</button>
     </div>
 
-    <h3 style="margin-top:18px">Preset rates</h3>
+    <h3 style="margin-top:12px">Preset rates</h3>
     <div class="btns">
       <button class="btn" data-set="0">0%</button>
       <button class="btn" data-set="2">2%</button>
@@ -303,7 +305,7 @@
       <button class="btn" data-set="10">10%</button>
     </div>
 
-    <h3 style="margin-top:18px">Business assumptions</h3>
+    <h3 style="margin-top:12px">Business assumptions</h3>
     <label>Ad Budget <span class="unit-suffix">USD</span></label>
     <input id="budget" type="number" value="1000" step="100" />
     <div class="row2">
@@ -330,19 +332,20 @@
   <!-- ===== Algorithmically determined (values assumed) ===== -->
   <div class="card algo-card">
     <h3 style="display:flex; align-items:center; gap:8px">
-      <span style="color:var(--warn)">Algorithmically determined</span>
+      <span style="color:var(--warn)">Shopper behaviour</span>
       <span class="algo-pill">values assumed</span>
     </h3>
     <p class="algo-note">
-      Shopper behaviour &amp; system prediction — <b>illustrative only</b>.
+      <b>U = Incremental Shopper Size</b>: extra shoppers a coupon can unlock. Higher = more.<br/>
+      <b>S = Shopper Price Sensitivity</b>: how strongly they react. Higher = small coupons are enough. <b>Illustrative only.</b>
     </p>
     <div class="row2">
       <div>
-        <label title="Cap on extra GMV from price-sensitive shoppers.">Audience Upside Cap (U) <span class="unit-suffix">%</span></label>
+        <label title="How many extra price-sensitive shoppers a coupon can unlock. Higher = more extra shoppers; lower = fewer.">Incremental Shopper Size (U) <span class="unit-suffix">%</span></label>
         <input id="liftA" type="number" value="30" step="1" min="0" max="60" />
       </div>
       <div>
-        <label title="How fast shoppers respond to small coupons (5–30).">Responsiveness (S) <span id="kHint" class="unit-suffix"></span></label>
+        <label title="How strongly shoppers react to a coupon. Higher = small coupons already trigger buying; lower = bigger coupons needed.">Shopper Price Sensitivity (S) <span id="kHint" class="unit-suffix"></span></label>
         <input id="liftK" type="number" value="14" step="1" min="5" max="30" />
       </div>
     </div>
@@ -413,11 +416,11 @@
       </div>
     </div>
 
-    <h3 style="margin-top:18px">Curves — click a label to toggle</h3>
+    <h3 style="margin-top:12px">Curves — click a label to toggle</h3>
     <div class="legend" id="legend"></div>
     <canvas id="chart" height="280" style="margin-top:10px"></canvas>
 
-    <h3 style="margin-top:18px">Scenario table</h3>
+    <h3 style="margin-top:12px">Scenario table</h3>
     <table id="tbl">
       <thead><tr>
         <th>Rate</th><th>GMV Gain %</th><th>Orders</th><th>GMV</th>
@@ -433,36 +436,27 @@
   <h3>How it works</h3>
   <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:14px; font-size:13px; line-height:1.55">
     <div style="padding:12px; background:var(--panel2); border-radius:10px; border-left:4px solid var(--acc)">
-      <b style="color:var(--acc)">① Coupons unlock extra shoppers</b><br/>
-      Coupons convert price-sensitive shoppers who'd otherwise bounce. Bigger <b>r</b> → bigger lift, with <b>diminishing returns</b>. Ceiling = <b>U</b> (Audience Upside Cap).
+      <b style="color:var(--acc)">① Coupons bring in extra shoppers</b><br/>
+      A coupon converts price-sensitive shoppers who would otherwise leave. Bigger coupon = more extra shoppers, up to a limit (<b>U</b>).
     </div>
     <div style="padding:12px; background:var(--panel2); border-radius:10px; border-left:4px solid var(--warn)">
-      <b style="color:var(--warn)">② How fast the curve climbs</b><br/>
-      <b>S</b> = curve speed. High S → tiny coupons move the needle. Low S → need bigger coupons.
+      <b style="color:var(--warn)">② How quickly they respond</b><br/>
+      <b>S</b> is how fast shoppers react. High S = small coupons are enough. Low S = you need bigger coupons.
     </div>
     <div style="padding:12px; background:var(--panel2); border-radius:10px; border-left:4px solid var(--good)">
       <b style="color:var(--good)">③ Profit has a sweet spot</b><br/>
-      GMV saturates; coupon cost grows linearly. The 🏆 marks the rate where profit peaks.
+      Extra GMV grows but coupon cost keeps rising. The 🏆 marks the coupon rate where profit is highest.
     </div>
   </div>
   <div style="margin-top:12px; padding:14px; background:linear-gradient(135deg, rgba(34,211,238,.09), rgba(245,158,11,.06)); border-radius:10px; border:1px solid #334155; font-size:13px; color:#e2e8f0; line-height:1.6">
     <div style="font-size:14px; color:var(--acc); font-weight:800; margin-bottom:6px">Where is the extra GMV coming from?</div>
-    Ad budget and ROI target don't change — <b>who converts</b> does. Without a coupon, only non-price-sensitive shoppers convert. With one, the same ad $ also captures the price-sensitive segment, so effective ROI overshoots the floor (5.0× → up to 5.0×(1+U)). <b>U</b> = size of that price-sensitive segment.
+    Same ad budget, same ROI target. The coupon just wins extra shoppers who would have walked away. More buyers, more GMV.
   </div>
   <div style="margin-top:10px; padding:12px; background:#0f172a; border-radius:8px; font-size:12px; color:#cbd5e1">
-    <b>Equation:</b> GMV(r) = GMV<sub>0</sub> × <b>[ 1 + U × (1 − e<sup>−S·r</sup>) ]</b> · Coupon cost = r × GMV · Profit = GMV × GM − Ad Spend − Coupon cost.
+    <b>In short:</b> bigger coupon = more shoppers but higher cost. Profit peaks where the extra GMV beats the extra cost (🏆).
   </div>
 </div>
 </div>
-<aside class="disclaimer" role="note" aria-label="Disclaimer">
-  <h4>⚠️ Disclaimer — Illustrative model only <span class="pill">not a forecast</span></h4>
-  <p>This explainer is a <b>directional simulation</b> designed to show how the Commission Saving offer on GMV Max could affect your unit economics. All figures (GMV, profit, margin) are <b>modelled assumptions</b> — they are not forecasts, guarantees, or contractual commitments from TikTok Shop or ByteDance.</p>
-  <ul>
-    <li>Actual results depend on creative supply, auction competition, inventory &amp; stock, pricing, seasonality, audience reach and platform algorithm behaviour.</li>
-    <li>The platform's <b>ROI target is a goal, not a guarantee</b> — realised ROI may differ.</li>
-    <li>Commission terms, eligibility, and availability are subject to TikTok Shop's official offer and <b>may change without notice</b>.</li>
-  </ul>
-</aside>
 <footer class="footnote">
   <b>Coupon ROI</b> = Incremental GMV ÷ Coupon Cost · ROI-protected (ad spend & ROI target fixed) · figures illustrative.
 </footer>
@@ -605,6 +599,7 @@ function buildLegend(){
   });
   const band = document.createElement("span");
   band.className = "info band"; band.id = "legendRecInfo"; band.textContent = "■ Recommended range (dynamic)";
+  band.style.display = "none";
   L.appendChild(band);
   const peak = document.createElement("span");
   peak.className = "info"; peak.style.color = "var(--warn)";
@@ -679,7 +674,7 @@ function render(){
   $("aLbl").textContent = "+"+(p.A*100).toFixed(0)+"%";
   $("kLbl").textContent = p.k.toFixed(0);
   // Half-saturation rate: r where (1 - e^{-S r}) = 0.5  =>  r = ln(2)/S
-  $("kHint").textContent = "½ @ " + (Math.log(2)/p.k*100).toFixed(1) + "%";
+  $("kHint").textContent = "";
 
   // KPIs
   $("kCvr").textContent = ((s.lift-1)>=0?"+":"")+((s.lift-1)*100).toFixed(1)+"%";
